@@ -66,7 +66,7 @@ function play(){
   player=new YT.Player('player',{width:'100%',height:'100%',videoId:c.id,
     playerVars:{cc_load_policy:0,autoplay:1,controls:0,rel:0,modestbranding:1,iv_load_policy:3,fs:0,disablekb:1,playsinline:1},
     events:{
-      onReady:function(e){dbg.push('ready');noCC(e.target);e.target.playVideo();},
+      onReady:function(e){dbg.push('ready');noCC(e.target);applyVol();e.target.playVideo();},
       onStateChange:function(e){
         dbg.push('st'+e.data); if(e.data===1){clearTimeout(readyTimer);noCC(e.target);}
         if(e.data===0) home();
@@ -86,10 +86,27 @@ function home(){
   q=''; render(); status(''); mode='home';
 }
 
+var vol=80, muted=false, volTimer=null;
+try{ var sv=parseInt(localStorage.getItem('vol'),10); if(sv>=0&&sv<=100) vol=sv; }catch(e){}
+function applyVol(){ if(player&&player.setVolume){ try{ player.setVolume(vol); muted?player.mute():player.unMute(); }catch(e){} } }
+function showVol(){
+  var v=$('vol'); v.innerHTML=(muted||vol===0?'🔇 Sessiz':'🔊 '+vol); v.style.opacity=1;
+  clearTimeout(volTimer); volTimer=setTimeout(function(){v.style.opacity=0;},1500);
+}
+function volKey(e){
+  var k=e.key||'', c=e.keyCode;
+  if(c===175||k==='AudioVolumeUp'||k==='VolumeUp'){ muted=false; vol=Math.min(100,vol+10); }
+  else if(c===174||k==='AudioVolumeDown'||k==='VolumeDown'){ muted=false; vol=Math.max(0,vol-10); }
+  else if(c===173||k==='AudioVolumeMute'||k==='VolumeMute'){ muted=!muted; }
+  else return false;
+  try{ localStorage.setItem('vol',vol); }catch(err){}
+  applyVol(); showVol(); return true;
+}
 var LOGIN='https://accounts.google.com/ServiceLogin?service=youtube&hl=tr&continue='+encodeURIComponent('https://www.youtube.com/signin?action_handle_signin=true&app=desktop&next=%2F');
 document.addEventListener('keydown',function(e){
   var c=e.keyCode;
   if(e.ctrlKey&&e.altKey&&c===71){ e.preventDefault(); location.href=LOGIN; return; }
+  if(volKey(e)){ e.preventDefault(); return; }
   if(mode==='play'){
     showBar();
     if(c===27||c===10009||c===8){home();}
