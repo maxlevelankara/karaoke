@@ -27,7 +27,7 @@ s.onerror=function(){apiFailed=true;}; document.body.appendChild(s);
 
 function search(){
   var text=q.replace(/\s+/g,' ').trim(); if(!text) return;
-  if(text==='maxgiris'){ status('Giriş sayfası açılıyor…'); location.href=LOGIN; return; }
+  if(text.replace(/ı/g,'i')==='maxgiris'||text==='maxhesap'){ status('Giriş sayfası açılıyor…'); location.href=LOGIN; return; }
   if(!API_KEY||API_KEY.indexOf('BURAYA')===0){status('API anahtarı girilmemiş.');return;}
   status('Aranıyor…'); mode='busy';
   var url='https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=6'
