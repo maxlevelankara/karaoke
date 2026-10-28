@@ -45,12 +45,15 @@ function search(){
   x.send();
 }
 
+function noCC(p){try{p.unloadModule('captions');p.unloadModule('cc');}catch(e){}}
+// keep keyboard focus on our page even after clicking inside the player (e.g. Skip Ad)
+setInterval(function(){var a=document.activeElement;if(a&&a.tagName==='IFRAME'){a.blur();window.focus();}},500);
 function decode(t){var a=document.createElement('textarea');a.innerHTML=t;return a.value;}
 function showBar(){var b=$('bar');b.style.opacity=1;clearTimeout(barTimer);barTimer=setTimeout(function(){b.style.opacity=0;},5000);}
 
 function play(){
-  var c=cands[ci]; if(!c){fallbackTV(cands[0],'hiçbir sonuç gömülü oynatılamadı');return;}
-  if(apiFailed){fallbackTV(c,'iframe_api betiği yüklenemedi');return;}
+  var c=cands[ci]; if(!c){home();status('Bu şarkı açılamadı, başka şekilde yazmayı dene.');return;}
+  if(apiFailed){status('Oynatıcı yüklenemedi, sayfa yenileniyor…');setTimeout(function(){location.reload();},3000);return;}
   if(!apiReady){status('Oynatıcı hazırlanıyor…');setTimeout(play,1000);return;}
   status(''); mode='play';
   $('home').style.display='none'; $('playerWrap').style.display='block';
@@ -58,30 +61,21 @@ function play(){
   if(player){ try{player.destroy();}catch(e){} player=null; }
   if(!$('player')){var d=document.createElement('div');d.id='player';$('playerWrap').insertBefore(d,$('shield'));}
   clearTimeout(readyTimer);
-  dbg=[];readyTimer=setTimeout(function(){fallbackTV(c,'15 sn içinde oynatma başlamadı');},15000);
+  dbg=[];
   player=new YT.Player('player',{width:'100%',height:'100%',videoId:c.id,
-    playerVars:{autoplay:1,controls:0,rel:0,modestbranding:1,iv_load_policy:3,fs:0,disablekb:1,playsinline:1},
+    playerVars:{cc_load_policy:0,autoplay:1,controls:0,rel:0,modestbranding:1,iv_load_policy:3,fs:0,disablekb:1,playsinline:1},
     events:{
-      onReady:function(e){dbg.push('ready');e.target.playVideo();},
+      onReady:function(e){dbg.push('ready');noCC(e.target);e.target.playVideo();},
       onStateChange:function(e){
-        dbg.push('st'+e.data); if(e.data===1) clearTimeout(readyTimer);
+        dbg.push('st'+e.data); if(e.data===1){clearTimeout(readyTimer);noCC(e.target);}
         if(e.data===0) home();
       },
       onError:function(e){
         dbg.push('err'+e.data); clearTimeout(readyTimer);
-        if(e.data===101||e.data===150||e.data===100){ci++;play();}
-        else fallbackTV(c,'oynatıcı hata kodu '+e.data);
+        ci++; play();
       }}});
 }
 
-function fallbackTV(c,why){
-  clearTimeout(readyTimer);
-  if(player){try{player.destroy();}catch(e){} player=null;}
-  if(!$('player')){var d=document.createElement('div');d.id='player';$('playerWrap').insertBefore(d,$('shield'));}
-  $('playerWrap').style.display='none'; $('home').style.display='block';
-  mode='err'; window._fb=c;
-  status('TANI: '+(why||'?')+'<br>apiReady='+apiReady+' apiFailed='+apiFailed+' olaylar=['+dbg.join(',')+']<br>Enter: YouTube TV\'de aç · Esc: geri');
-}
 
 function home(){
   clearTimeout(readyTimer);
@@ -91,8 +85,10 @@ function home(){
   q=''; render(); status(''); mode='home';
 }
 
+var LOGIN='https://accounts.google.com/ServiceLogin?service=youtube&hl=tr&continue='+encodeURIComponent('https://www.youtube.com/signin?action_handle_signin=true&app=desktop&next=%2F');
 document.addEventListener('keydown',function(e){
   var c=e.keyCode;
+  if(e.ctrlKey&&e.altKey&&c===71){ e.preventDefault(); location.href=LOGIN; return; }
   if(mode==='play'){
     showBar();
     if(c===27||c===10009||c===8){home();}
@@ -101,7 +97,6 @@ document.addEventListener('keydown',function(e){
     else if(c===39&&player){player.seekTo(player.getCurrentTime()+10,true);}
     e.preventDefault(); return;
   }
-  if(mode==='err'){ if(c===13&&window._fb){location.href='https://www.youtube.com/tv#/watch?v='+window._fb.id;} else if(c===27||c===8){mode='home';q='';render();status('');} e.preventDefault(); return; }
   if(mode!=='home'){e.preventDefault();return;}
   if(c===8){q=q.slice(0,-1);}
   else if(c===27||c===46){q='';}
