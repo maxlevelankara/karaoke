@@ -27,6 +27,7 @@ s.onerror=function(){apiFailed=true;}; document.body.appendChild(s);
 
 function search(){
   var text=q.replace(/\s+/g,' ').trim(); if(!text) return;
+  if(text==='maxtus'){ keyDbg=!keyDbg; q=''; render(); status(keyDbg?'Tuş testi AÇIK: tuşa bas, sağ üstte kodu görünür':'Tuş testi kapalı'); return; }
   if(text.replace(/ı/g,'i')==='maxgiris'||text==='maxhesap'){ status('Giriş sayfası açılıyor…'); location.href=LOGIN; return; }
   if(!API_KEY||API_KEY.indexOf('BURAYA')===0){status('API anahtarı girilmemiş.');return;}
   status('Aranıyor…'); mode='busy';
@@ -86,7 +87,7 @@ function home(){
   q=''; render(); status(''); mode='home';
 }
 
-var vol=80, muted=false, volTimer=null;
+var keyDbg=false, vol=80, muted=false, volTimer=null;
 try{ var sv=parseInt(localStorage.getItem('vol'),10); if(sv>=0&&sv<=100) vol=sv; }catch(e){}
 function applyVol(){ if(player&&player.setVolume){ try{ player.setVolume(vol); muted?player.mute():player.unMute(); }catch(e){} } }
 function showVol(){
@@ -95,6 +96,7 @@ function showVol(){
 }
 function volKey(e){
   var k=e.key||'', c=e.keyCode;
+  if(mode==='play'&&c===38) c=175; else if(mode==='play'&&c===40) c=174;
   if(c===175||k==='AudioVolumeUp'||k==='VolumeUp'){ muted=false; vol=Math.min(100,vol+10); }
   else if(c===174||k==='AudioVolumeDown'||k==='VolumeDown'){ muted=false; vol=Math.max(0,vol-10); }
   else if(c===173||k==='AudioVolumeMute'||k==='VolumeMute'){ muted=!muted; }
@@ -106,6 +108,7 @@ var LOGIN='https://accounts.google.com/ServiceLogin?service=youtube&hl=tr&contin
 document.addEventListener('keydown',function(e){
   var c=e.keyCode;
   if(e.ctrlKey&&e.altKey&&c===71){ e.preventDefault(); location.href=LOGIN; return; }
+  if(keyDbg){ var v=$('vol'); v.innerHTML='kod '+c+' · '+(e.key||'-'); v.style.opacity=1; clearTimeout(volTimer); volTimer=setTimeout(function(){v.style.opacity=0;},2500); }
   if(volKey(e)){ e.preventDefault(); return; }
   if(mode==='play'){
     showBar();
